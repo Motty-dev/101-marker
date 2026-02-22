@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import type { FieldDefinition, PDFViewport, Template } from './types'
 import { Toolbar } from './components/Toolbar'
@@ -84,7 +84,21 @@ export default function App() {
     restore()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-save state whenever fields or key metadata change
+  // Keep a ref with latest state for the beforeunload handler (avoids stale closures)
+  const sessionRef = useRef({ fields, pdfFileName, templateName, pageDimensions, currentPage, zoom })
+  sessionRef.current = { fields, pdfFileName, templateName, pageDimensions, currentPage, zoom }
+
+  // Guaranteed save right before the page unloads (covers refresh / close)
+  useEffect(() => {
+    const handler = () => {
+      const s = sessionRef.current
+      if (s.pdfFileName) saveStateToStorage(s)
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Also auto-save continuously so crashes don't lose work
   useEffect(() => {
     if (!pdfFileName) return
     saveStateToStorage({ fields, pdfFileName, templateName, pageDimensions, currentPage, zoom })
@@ -112,6 +126,14 @@ export default function App() {
       const bytes = new Uint8Array(await file.arrayBuffer())
       await savePdfToDb(bytes, file.name)
       const doc = await loadPdfFromBytes(bytes)
+
+      // Compute all page dimensions before touching React state so all
+      // updates land in a single batch → auto-save fires once with correct dims
+      const dims: Record<number, { width: number; height: number }> = {}
+      for (let p = 1; p <= doc.numPages; p++) {
+        dims[p] = await getPageDimensions(doc, p)
+      }
+
       setPdfDoc(doc)
       setPdfFileName(file.name)
       setCurrentPage(1)
@@ -119,15 +141,9 @@ export default function App() {
       setFields({})
       setSelectedFieldId(null)
       setPlacementMode(false)
-      setPageDimensions({})
+      setPageDimensions(dims)
       setViewports({})
       setPreviewValues({})
-
-      const dims: Record<number, { width: number; height: number }> = {}
-      for (let p = 1; p <= doc.numPages; p++) {
-        dims[p] = await getPageDimensions(doc, p)
-      }
-      setPageDimensions(dims)
     } catch (err) {
       console.error('Failed to load PDF:', err)
       alert('Failed to load PDF. Please try again.')
