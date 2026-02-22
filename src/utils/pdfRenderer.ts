@@ -13,6 +13,11 @@ export async function loadPdfDocument(file: File): Promise<PDFDocumentProxy> {
   return loadingTask.promise
 }
 
+export async function loadPdfFromBytes(data: Uint8Array): Promise<PDFDocumentProxy> {
+  const loadingTask = pdfjsLib.getDocument({ data })
+  return loadingTask.promise
+}
+
 export async function renderPageToCanvas(
   pdfDoc: PDFDocumentProxy,
   pageNum: number,

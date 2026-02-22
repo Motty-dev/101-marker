@@ -6,8 +6,16 @@ import { PdfViewer } from './components/PdfViewer'
 import { FieldEditor } from './components/FieldEditor'
 import { FieldList } from './components/FieldList'
 import { ExportModal } from './components/ExportModal'
-import { loadPdfDocument, getPageDimensions } from './utils/pdfRenderer'
+import { loadPdfFromBytes, getPageDimensions } from './utils/pdfRenderer'
 import { generateFieldId } from './utils/coordUtils'
+import {
+  savePdfToDb,
+  loadPdfFromDb,
+  clearPdfFromDb,
+  saveStateToStorage,
+  loadStateFromStorage,
+  clearStateFromStorage,
+} from './utils/persistence'
 
 function createDefaultField(
   id: string,
@@ -50,6 +58,38 @@ export default function App() {
   const currentFields = fields[currentPage] || []
   const allFieldIds = Object.values(fields).flat().map((f) => f.id)
 
+  // Restore session on mount
+  useEffect(() => {
+    async function restore() {
+      const storedPdf = await loadPdfFromDb()
+      if (!storedPdf) return
+      const state = loadStateFromStorage()
+      if (!state) return
+      try {
+        const doc = await loadPdfFromBytes(storedPdf.data)
+        setPdfDoc(doc)
+        setPdfFileName(storedPdf.fileName)
+        setTotalPages(doc.numPages)
+        setFields(state.fields)
+        setTemplateName(state.templateName)
+        setCurrentPage(state.currentPage || 1)
+        setZoom(state.zoom || 1.5)
+        setPageDimensions(state.pageDimensions)
+      } catch (err) {
+        console.error('Failed to restore session:', err)
+        await clearPdfFromDb()
+        clearStateFromStorage()
+      }
+    }
+    restore()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-save state whenever fields or key metadata change
+  useEffect(() => {
+    if (!pdfFileName) return
+    saveStateToStorage({ fields, pdfFileName, templateName, pageDimensions, currentPage, zoom })
+  }, [fields, pdfFileName, templateName, pageDimensions, currentPage, zoom])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -69,7 +109,9 @@ export default function App() {
 
   const handleFileUpload = useCallback(async (file: File) => {
     try {
-      const doc = await loadPdfDocument(file)
+      const bytes = new Uint8Array(await file.arrayBuffer())
+      await savePdfToDb(bytes, file.name)
+      const doc = await loadPdfFromBytes(bytes)
       setPdfDoc(doc)
       setPdfFileName(file.name)
       setCurrentPage(1)
