@@ -57,6 +57,23 @@ export const MarkerOverlay: React.FC<MarkerOverlayProps> = ({
     [placementMode, viewport, onPlace]
   )
 
+  // Touch support: tap to place on mobile
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      if (!placementMode || !viewport) return
+      e.preventDefault()
+      const touch = e.changedTouches[0]
+      if (!touch) return
+      const rect = e.currentTarget.getBoundingClientRect()
+      const screenX = touch.clientX - rect.left
+      const screenY = touch.clientY - rect.top
+      const { x, y } = screenToPdf(screenX, screenY, viewport)
+      onPlace(x, y)
+      setGhostPos(null)
+    },
+    [placementMode, viewport, onPlace]
+  )
+
   const handleOverlayClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (!placementMode) {
@@ -86,6 +103,7 @@ export const MarkerOverlay: React.FC<MarkerOverlayProps> = ({
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onClick={placementMode ? handleClick : handleOverlayClick}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Render all fields */}
       {fields.map((field) => (

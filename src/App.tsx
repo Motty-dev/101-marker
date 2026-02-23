@@ -54,9 +54,11 @@ export default function App() {
   const [pageDimensions, setPageDimensions] = useState<Record<number, { width: number; height: number }>>({})
   // previewValues: fieldId → sample value entered in the editor (not exported)
   const [previewValues, setPreviewValues] = useState<Record<string, string>>({})
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const currentFields = fields[currentPage] || []
   const allFieldIds = Object.values(fields).flat().map((f) => f.id)
+  const totalFieldCount = allFieldIds.length
 
   // Restore session on mount
   useEffect(() => {
@@ -120,6 +122,16 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [selectedFieldId, currentPage]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // On mobile: auto-open panel when a field is selected
+  useEffect(() => {
+    if (selectedFieldId && window.innerWidth <= 768) setSidebarOpen(true)
+  }, [selectedFieldId])
+
+  // Close panel when entering placement mode
+  useEffect(() => {
+    if (placementMode) setSidebarOpen(false)
+  }, [placementMode])
 
   const handleFileUpload = useCallback(async (file: File) => {
     try {
@@ -345,8 +357,8 @@ export default function App() {
         </div>
       )}
 
-      <div style={styles.main}>
-        <div style={styles.canvasArea}>
+      <div style={styles.main} className="app-main">
+        <div style={styles.canvasArea} className="app-canvas">
           <PdfViewer
             pdfDoc={pdfDoc}
             currentPage={currentPage}
@@ -363,7 +375,11 @@ export default function App() {
           />
         </div>
 
-        <div style={styles.sidebar}>
+        <div style={styles.sidebar} className={sidebarOpen ? 'app-sidebar sidebar-open' : 'app-sidebar'}>
+          {/* Mobile drag handle — tap to close */}
+          <div className="sidebar-handle-row" onClick={() => setSidebarOpen(false)}>
+            <div className="sidebar-handle-pill" />
+          </div>
           <div style={styles.editorSection}>
             <FieldEditor
               field={selectedField}
@@ -389,6 +405,21 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
+        <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* Mobile fields FAB */}
+      {!!pdfDoc && !placementMode && (
+        <button
+          className={sidebarOpen ? 'mobile-fab fab-close' : 'mobile-fab'}
+          onClick={() => setSidebarOpen((p) => !p)}
+        >
+          {sidebarOpen ? '✕' : `⊞ Fields${totalFieldCount > 0 ? ` (${totalFieldCount})` : ''}`}
+        </button>
+      )}
 
       {showExport && (
         <ExportModal
@@ -423,6 +454,109 @@ const globalCSS = `
     50% { opacity: 0.2; }
   }
   .placement-blink { animation: blink 1.4s ease-in-out infinite; }
+
+  /* ── Mobile layout helpers (base) ── */
+  .app-sidebar {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 399;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sidebar-handle-row {
+    display: none;
+    justify-content: center;
+    padding: 10px 0 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .sidebar-handle-pill {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: #2a2d5a;
+  }
+  .mobile-fab {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 16px;
+    align-items: center;
+    gap: 6px;
+    background: #1a1f4a;
+    border: 1px solid #3d4494;
+    border-radius: 24px;
+    color: #7986cb;
+    font-family: 'Heebo', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 11px 20px;
+    cursor: pointer;
+    z-index: 300;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .mobile-fab.fab-close {
+    background: #2d1a3a;
+    border-color: #7b3f8c;
+    color: #ce93d8;
+  }
+
+  /* ── Mobile breakpoint ── */
+  @media (max-width: 768px) {
+    /* Toolbar: scrollable single row */
+    .app-toolbar {
+      height: auto !important;
+      min-height: 48px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      flex-wrap: nowrap !important;
+      padding: 0 10px !important;
+      gap: 8px !important;
+    }
+    .app-toolbar::-webkit-scrollbar { display: none; }
+
+    /* Hide template input to save space */
+    .toolbar-template { display: none !important; }
+
+    /* Stack PDF viewer on top, sidebar on bottom */
+    .app-main { flex-direction: column !important; }
+    .app-canvas { flex: 1; min-height: 0; }
+
+    /* Sidebar becomes a bottom sheet */
+    .app-sidebar {
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      height: 62vh !important;
+      max-height: 62vh !important;
+      border-left: none !important;
+      border-top: 1px solid #1e2040 !important;
+      border-radius: 14px 14px 0 0 !important;
+      transform: translateY(110%);
+      z-index: 400;
+      overflow-y: auto;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .app-sidebar.sidebar-open { transform: translateY(0); }
+
+    /* Show mobile elements */
+    .sidebar-backdrop { display: block; }
+    .sidebar-handle-row { display: flex; }
+    .mobile-fab { display: flex; }
+
+    /* Give PDF canvas a bottom gap so the FAB doesn't overlap content */
+    .app-canvas > * { padding-bottom: 72px; }
+  }
 `
 
 const styles: Record<string, React.CSSProperties> = {

@@ -4,6 +4,8 @@ import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  // Use repo-name base only when building in GitHub Actions for GitHub Pages
+  base: process.env.GITHUB_ACTIONS === 'true' ? '/101-marker/' : '/',
   server: {
     port: 9999,
     host: true,

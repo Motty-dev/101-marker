@@ -59,8 +59,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   }
 
   return (
-    <div style={styles.toolbar}>
-      <div style={styles.left}>
+    <div style={styles.toolbar} className="app-toolbar">
+      <div style={styles.left} className="toolbar-left">
         {/* Logo */}
         <div style={styles.logo}>
           <span style={styles.logoIcon}>◈</span>
@@ -74,6 +74,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           onChange={(e) => onTemplateNameChange(e.target.value)}
           placeholder="template_name"
           style={styles.templateInput}
+          className="toolbar-template"
           title="Template name"
         />
 
@@ -102,7 +103,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         )}
       </div>
 
-      <div style={styles.center}>
+      <div style={styles.center} className="toolbar-center">
         {/* Page navigation */}
         {hasPdf && (
           <div style={styles.pageNav}>
@@ -144,7 +145,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         )}
       </div>
 
-      <div style={styles.right}>
+      <div style={styles.right} className="toolbar-right">
         {/* Add field button */}
         {hasPdf && (
           <button
