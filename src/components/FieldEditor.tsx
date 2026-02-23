@@ -192,7 +192,7 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({
                 key={t}
                 style={{
                   ...styles.typeBtn,
-                  ...(localField.type === t ? styles.typeBtnActive[t] : {}),
+                  ...(localField.type === t ? typeBtnActiveStyles[t] : {}),
                 }}
                 onClick={() => handleTypeChange(t)}
               >
@@ -616,11 +616,6 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'all 0.15s',
   },
   typeBtnLabel: { fontSize: 10, textTransform: 'capitalize' },
-  typeBtnActive: {
-    text: { background: '#1a2a5a', border: '1px solid #4f7fff', color: '#4f7fff' },
-    number: { background: '#0d2d1a', border: '1px solid #43e97b', color: '#43e97b' },
-    check: { background: '#2d1f0d', border: '1px solid #ff9f43', color: '#ff9f43' },
-  },
 
   // ── Live preview ──
   previewBox: {
@@ -753,4 +748,10 @@ const styles: Record<string, React.CSSProperties> = {
   deleteBtn: { background: '#2d1212', border: '1px solid #5a1a1a', color: '#ef9a9a' },
   deleteBtnConfirm: { background: '#5a1a1a', border: '1px solid #f44336', color: '#f44336' },
   cancelBtn: { background: '#12122a', border: '1px solid #2a2d5a', color: '#5c6bc0' },
+}
+
+const typeBtnActiveStyles: Record<FieldType, React.CSSProperties> = {
+  text: { background: '#1a2a5a', border: '1px solid #4f7fff', color: '#4f7fff' },
+  number: { background: '#0d2d1a', border: '1px solid #43e97b', color: '#43e97b' },
+  check: { background: '#2d1f0d', border: '1px solid #ff9f43', color: '#ff9f43' },
 }

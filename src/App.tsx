@@ -49,7 +49,7 @@ export default function App() {
   const [fields, setFields] = useState<Record<number, FieldDefinition[]>>({})
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null)
   const [placementMode, setPlacementMode] = useState(false)
-  const [viewports, setViewports] = useState<Record<number, PDFViewport>>({})
+  const [, setViewports] = useState<Record<number, PDFViewport>>({})
   const [showExport, setShowExport] = useState(false)
   const [pageDimensions, setPageDimensions] = useState<Record<number, { width: number; height: number }>>({})
   // previewValues: fieldId → sample value entered in the editor (not exported)

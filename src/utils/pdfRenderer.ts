@@ -38,6 +38,7 @@ export async function renderPageToCanvas(
   await page.render({
     canvasContext: ctx,
     viewport: rawViewport,
+    canvas,
   }).promise
 
   return {
